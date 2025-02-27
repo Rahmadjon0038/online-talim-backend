@@ -20,4 +20,4 @@
 
 <br> <br> <br> <br>
 
-##### <center>Murodillayev Hojiakbar - 2024 Nammqi</center>
+##### <center>Murodillayev Hojiakbar Abdullayev Rahmadjon - 2024 Nammqi</center>
