@@ -1,8 +1,8 @@
-const fs = require("fs");
-const path = require("path");
-const { google } = require("googleapis");
+import fs from "fs";
+import path from "path";
+import { google }  from "googleapis";
+const credentials = JSON.parse(fs.readFileSync("controllers/credentials.json", "utf8"));
 
-const credentials = require("./credentials.json"); // Google API JSON fayli
 const SLIDES_TEMPLATE_ID = "14JPDR2SKAWpkLMHC-SF_fdmmAruerXmisJCURPeAjx4"; // Google Slides fayl ID
 
 const auth = new google.auth.GoogleAuth({
@@ -13,7 +13,7 @@ const auth = new google.auth.GoogleAuth({
     ],
 });
 
-async function generateCertificate({ name, surname, fannomi, score }) {
+export async function generateSer({ name, surname, fannomi, score }) {
     try {
         const slides = google.slides({ version: "v1", auth });
         const drive = google.drive({ version: "v3", auth });
@@ -45,7 +45,7 @@ async function generateCertificate({ name, surname, fannomi, score }) {
         });
 
         // PDF formatga o‘tkazish va yuklash
-        const pdfPath = path.join(__dirname, `Certificate_${surname}_${name}.pdf`);
+        const pdfPath = path.join(`Certificate_${surname}_${name}.pdf`);
         const pdfRes = await drive.files.export(
             { fileId: presentationId, mimeType: "application/pdf" },
             { responseType: "stream" }
@@ -63,10 +63,10 @@ async function generateCertificate({ name, surname, fannomi, score }) {
     }
 }
 
-// TEST qilish
-generateCertificate({
-    name: "Ali",
-    surname: "Karimov",
-    fannomi: "Matematika",
-    score: 85,
-}).then((pdfPath) => console.log("Certificate saved at:", pdfPath));
+// // TEST qilish
+// generateCertificate({
+//     name: "Ali",
+//     surname: "Karimov",
+//     fannomi: "Matematika",
+//     score: 85,
+// }).then((pdfPath) => console.log("Certificate saved at:", pdfPath));

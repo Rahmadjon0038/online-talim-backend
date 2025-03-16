@@ -3,6 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const User = require("../models/User");
 const Lesson = require("../models/Lessons");
+const {generateSer} = require("./sertificateGenerate");
 
 // Utility function for reusable logic
 const findLessonAndTopic = async (fannomi, darsnomi) => {
@@ -180,12 +181,12 @@ const checkQuizAnswers = async (req, res) => {
     });
 
     res.status(200).json({
-      success: true,
-      correctAnswers: correctAnswersCount,
-    
-    }
-  );
-    
+          success: true,
+          correctAnswers: correctAnswersCount,
+
+        }
+    );
+
   } catch (error) {
     console.error("checkQuizAnswers error:", error);
     res.status(500).json({ message: "Javoblarni tekshirishda server xatosi yuz berdi" });
@@ -196,68 +197,36 @@ const checkQuizAnswers = async (req, res) => {
 // Sertifikat yaratish funksiyasi
 
 
-
 const generateCertificate = async (req, res) => {
   try {
-    const { isFinish, name, surname, group, fannomi, score } = req.body;
-    if (!isFinish || score < 60) {
+    const {isFinish,  name, surname, fannomi, score } = req.body;
+    // const {  name, surname, fannomi, score } = {name: "Hojiakbar",surname: "Hojiakbar",fannomi: "Hojiakbar", score: 70};
+
+    if (!isFinish || score < 70) {
       return res.status(400).json({ message: "Sertifikat berish shartlari bajarilmadi." });
     }
 
-    let category = "Qoniqarli";
-    if (score >= 90) category = "A'lo";
-    else if (score >= 80) category = "Yaxshi";
+    const pdfPath = await generateSer({ name, surname, fannomi, score });
 
-    const fileName = `certificate_${name}_${surname}.pdf`;
-    const filePath = path.join(__dirname, "../certificates", fileName);
-    if (!fs.existsSync(path.dirname(filePath))) {
-      fs.mkdirSync(path.dirname(filePath), { recursive: true });
-    }
+    if (pdfPath) {
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename=Certificate_${surname}_${name}.pdf`);
 
-    const doc = new PDFDocument({ size: "A4", layout: "landscape" });
-    const stream = fs.createWriteStream(filePath);
-    doc.pipe(stream);
+      const readStream = fs.createReadStream(pdfPath);
+      readStream.pipe(res);
 
-    // Sertifikat orqa foni
-    doc.rect(0, 0, doc.page.width, doc.page.height).fill("#f3faff");
-
-    // Chegara
-    doc.strokeColor("#006666").lineWidth(3)
-      .rect(20, 20, doc.page.width - 40, doc.page.height - 40)
-      .stroke();
-
-    // "SERTIFIKAT" yozuvi
-    doc.fillColor("#004d4d").fontSize(40).font("Helvetica-Bold").text("CERTIFICATE", { align: "center" });
-    doc.moveDown(0.5);
-    doc.fontSize(18).text("OF COMPLETION", { align: "center" });
-    doc.moveDown(1);
-
-    // O‘quvchi ma'lumotlari
-    doc.fontSize(24).font("Helvetica-Oblique").fillColor("#000");
-    doc.text(`Presented to`, { align: "center" });
-    doc.fontSize(32).font("Times-Bold").fillColor("#006666");
-    doc.text(`${surname} ${name}`, { align: "center" });
-    doc.moveDown();
-    doc.fontSize(20).font("Helvetica").fillColor("#000");
-    doc.fontSize(22).text(`${fannomi}`, { align: "center", underline: true });
-    doc.moveDown(1);
-    
-    // Natija
-    doc.fontSize(18).text(`Score: ${score}% | Grade: ${category}`, { align: "center" });
-    doc.moveDown(2);
-
-    // Imzo va sana
-
-    doc.end();
-    stream.on("finish", () => {
-      res.download(filePath, fileName, (err) => {
-        if (err) console.error("Download error:", err);
-        fs.unlink(filePath, (err) => { if (err) console.error("File delete error:", err); });
+      readStream.on("end", () => {
+        // Faylni o‘chirish (agar vaqtincha saqlangan bo‘lsa)
+        fs.unlink(pdfPath, (err) => {
+          if (err) console.error("File delete error:", err);
+        });
       });
-    });
+    } else {
+      res.status(500).json({ message: "Sertifikat generatsiya qilishda xatolik yuz berdi." });
+    }
   } catch (error) {
-    console.error("generateCertificate error:", error);
-    res.status(500).json({ message: "Serverda xatolik yuz berdi" });
+    console.error("Error:", error);
+    res.status(500).json({ message: "Serverda xatolik yuz berdi." });
   }
 };
 
